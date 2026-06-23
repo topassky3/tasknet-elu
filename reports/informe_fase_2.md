@@ -1,0 +1,48 @@
+# Informe Fase 2 — TaskNet-ELU (aprendido vs clasico)
+
+## Configuracion
+- Fuente de datos: **fashion_mnist**
+- Backend: **torch**
+- Epocas: **5**
+- Semillas: **3**
+- limit_train: **0**
+- limit_test: **0**
+- U_max = **0.8916**
+- Epsilon SSP = **0.03**
+- Ahorro minimo = **80%**
+
+## Veredicto de dominancia
+
+**El EMBEDDING domina a la compresion clasica en utilidad por byte entre representaciones que conservan utilidad.**
+
+- Lectura de eficiencia: comparado contra clasicos dentro de epsilon.
+- Embedding dentro de epsilon: **True**
+- Utilidad por byte del embedding: **0.01769192**
+- Accuracy embedding: **0.8916**
+- Bytes embedding: **50.39**
+- Mejor clasico considerado: **`jpeg_q5`** (utility/byte=0.00224839, accuracy=0.8622, bytes=383.49, within_epsilon=True)
+- Lectura Pareto: el embedding domina en Pareto a todos los clasicos.
+
+## Resultados
+
+| representation    | representation_group   | compression_family   | quality   |   bytes_raw |   bytes |     bits | serialization_method   |   accuracy |   accuracy_std |   latency_ms |   latency_ms_std |   utility_per_byte |   byte_savings | within_epsilon   | enough_savings   | is_ssp_any   | is_ssp_decision   | is_ssp_semantic   | is_ssp_visual   | receiver                        | is_silence_baseline   |   seed_count |
+|:------------------|:-----------------------|:---------------------|:----------|------------:|--------:|---------:|:-----------------------|-----------:|---------------:|-------------:|-----------------:|-------------------:|---------------:|:-----------------|:-----------------|:-------------|:------------------|:------------------|:----------------|:--------------------------------|:----------------------|-------------:|
+| original_png      | visual                 | png                  | lossless  |         784 | 512.474 | 4099.79  | png                    |   0.8859   |       0.002871 |     0.112925 |         0.012703 |         0.00172867 |       0        | yes              | no               | no           | no                | no                | no              | independent_full_image          | no                    |            3 |
+| jpeg_q90          | visual                 | jpeg                 | 90        |         784 | 742.92  | 5943.36  | jpeg                   |   0.885067 |       0.003277 |     0.124744 |         0.003128 |         0.00119134 |       0        | yes              | no               | no           | no                | no                | no              | independent_jpeg                | no                    |            3 |
+| jpeg_q50          | visual                 | jpeg                 | 50        |         784 | 526.47  | 4211.76  | jpeg                   |   0.878333 |       0.006086 |     0.103577 |         0.011924 |         0.00166834 |       0        | yes              | no               | no           | no                | no                | no              | independent_jpeg                | no                    |            3 |
+| jpeg_q20          | visual                 | jpeg                 | 20        |         784 | 447.828 | 3582.62  | jpeg                   |   0.873633 |       0.000464 |     0.123699 |         0.004556 |         0.00195082 |       0.126145 | yes              | no               | no           | no                | no                | no              | independent_jpeg                | no                    |            3 |
+| jpeg_q10          | visual                 | jpeg                 | 10        |         784 | 408.44  | 3267.52  | jpeg                   |   0.8752   |       0.002619 |     0.122669 |         0.034535 |         0.00214279 |       0.203003 | yes              | no               | no           | no                | no                | no              | independent_jpeg                | no                    |            3 |
+| jpeg_q5           | visual                 | jpeg                 | 5         |         784 | 383.49  | 3067.92  | jpeg                   |   0.862233 |       0.004028 |     0.142264 |         0.024605 |         0.00224839 |       0.251689 | yes              | no               | no           | no                | no                | no              | independent_jpeg                | no                    |            3 |
+| resize16_jpeg_q50 | visual                 | resize               | 16+q50    |         256 | 394.134 | 3153.07  | jpeg                   |   0.8475   |       0.001068 |     0.045415 |         0.006248 |         0.00215028 |       0.230919 | no               | no               | no           | no                | no                | no              | independent_resize_jpeg         | no                    |            3 |
+| resize_8x8        | visual                 | resize               | 8         |          64 |  78.77  |  630.16  | uint8+gzip             |   0.798367 |       0.004947 |     0.012934 |         0.001019 |         0.0101354  |       0.846295 | no               | yes              | no           | no                | no                | no              | independent_resize              | no                    |            3 |
+| embedding         | semantic               | learned              | uint8     |          32 |  50.394 |  403.152 | uint8+gzip             |   0.891567 |       0.003027 |     0.000907 |         2.4e-05  |         0.0176919  |       0.901665 | yes              | yes              | no           | no                | yes               | no              | independent_embedding_quantized | no                    |            3 |
+| label             | decision               | decision             | argmax    |           1 |  21     |  168     | uint8+gzip             |   0.8876   |       0.003023 |     0        |         0        |         0.0422667  |       0.959022 | yes              | yes              | yes          | yes               | no                | no              | ground_truth                    | no                    |            3 |
+| silence           | silence                | silence              | none      |           0 |   0     |    0     | none                   |   0.1      |       0        |     0        |         0        |       nan          |       1        | no               | yes              | no           | no                | no                | no              | majority_class                  | yes                   |            3 |
+
+## Notas de honestidad
+
+- El embedding sale de un transmisor entrenado en la tarea. Por tanto, es una cota optimista. La comparacion es valida como experimento controlado, no como conclusion universal.
+- JPEG en imagenes 28x28 en escala de grises no es su escenario ideal. Si pierde, no significa que JPEG sea malo; significa que en este entorno controlado no fue la mejor representacion para la tarea.
+- Cuantizador del embedding: los parametros min/max se asumen compartidos de antemano entre transmisor y receptor como metadatos de calibracion. No se cuentan como bytes por muestra. Solo se cuentan los bytes del vector cuantizado que viaja en cada transmision.
+- Latencia: es el tiempo de inferencia del receptor por muestra. No incluye entrenamiento, compresion, serializacion ni latencia de red.
+- La utilidad por byte no basta por si sola. Por eso el veredicto exige primero conservar utilidad dentro de epsilon para declarar ganador al embedding o a un clasico.

@@ -1,11 +1,26 @@
-.venv/
+# Python
 __pycache__/
-*.pyc
-data/raw/*
-data/processed/*
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+
+# Environments
+.venv/
+venv/
+env/
+.env
+
+# Data descargada localmente
+data/raw/
 !data/raw/.gitkeep
-!data/processed/.gitkeep
-results/tables/*
-results/figures/*
-!results/tables/.gitkeep
-!results/figures/.gitkeep
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs
+*.log

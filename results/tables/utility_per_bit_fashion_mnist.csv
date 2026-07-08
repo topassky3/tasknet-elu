@@ -1,0 +1,7 @@
+representation,representation_group,bytes_raw,bytes,bits,serialization_method,accuracy,accuracy_std,latency_ms,latency_ms_std,utility_per_byte,byte_savings,within_epsilon,enough_savings,is_ssp_any,is_ssp_decision,is_ssp_semantic,is_ssp_visual,receiver,is_silence_baseline,seed_count
+original,visual,784.0,512.438,4099.504,png,0.8895,0.001577,0.118609,0.003895,0.00173582,0.0,yes,no,no,no,no,no,independent_full_image,no,3
+resize_16x16,visual,256.0,212.262,1698.096,uint8+gzip,0.857667,0.003838,0.045551,0.002153,0.0040406,0.58578,no,no,no,no,no,no,independent_resize,no,3
+resize_8x8,visual,64.0,78.77,630.16,uint8+gzip,0.7894,0.005175,0.010269,0.001351,0.01002158,0.846284,no,yes,no,no,no,no,independent_resize,no,3
+embedding,semantic,32.0,50.394,403.152,uint8+gzip,0.892467,0.002798,0.000518,7.6e-05,0.01770978,0.901658,yes,yes,no,no,yes,no,independent_embedding_quantized,no,3
+label,decision,1.0,21.0,168.0,uint8+gzip,0.8876,0.003023,0.0,0.0,0.04226667,0.959019,yes,yes,yes,yes,no,no,ground_truth,no,3
+silence,silence,0.0,0.0,0.0,none,0.1,0.0,0.0,0.0,,1.0,no,yes,no,no,no,no,majority_class,yes,3

@@ -55,12 +55,14 @@ jobs:
             paper/TaskNet-ELU-preprint-v0.1.0.tex
           test -s /tmp/tasknet-elu-build/TaskNet-ELU-preprint-v0.1.0.pdf
 
-      - name: Generate deterministic manifest on branch pushes
-        if: github.event_name == 'push'
+      - name: Generate deterministic manifest
         run: python scripts/05_verify_release.py --write-manifest
 
-      - name: Commit refreshed manifest
-        if: github.event_name == 'push'
+      - name: Verify release claims and manifest
+        run: python scripts/05_verify_release.py --check
+
+      - name: Commit refreshed manifest on the release branch
+        if: github.ref_name == 'release/v0.1.0-zenodo' || github.head_ref == 'release/v0.1.0-zenodo'
         run: |
           if git diff --quiet -- release/MANIFEST.sha256; then
             echo "Manifest already current."
@@ -69,11 +71,8 @@ jobs:
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add release/MANIFEST.sha256
             git commit -m "chore(release): refresh SHA-256 manifest [skip ci]"
-            git push
+            git push origin HEAD:release/v0.1.0-zenodo
           fi
-
-      - name: Verify release claims and manifest
-        run: python scripts/05_verify_release.py --check
 
       - name: Ensure validation leaves repository clean
         run: git diff --exit-code

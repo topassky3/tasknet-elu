@@ -1,0 +1,57 @@
+name: release-integrity
+
+on:
+  pull_request:
+  push:
+    branches:
+      - release/v0.1.0-zenodo
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install lightweight validators
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install cffconvert
+
+      - name: Validate repository structure
+        run: python scripts/00_phase0_check.py
+
+      - name: Validate CITATION.cff
+        run: cffconvert --validate
+
+      - name: Validate Zenodo JSON
+        run: python -m json.tool .zenodo.json > /dev/null
+
+      - name: Verify release claims and manifest
+        run: python scripts/05_verify_release.py --check
+
+      - name: Install LaTeX
+        if: ${{ hashFiles('paper/TaskNet-ELU-preprint-v0.1.0.tex') != '' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y texlive-latex-base texlive-latex-extra texlive-fonts-recommended
+
+      - name: Compile preprint twice
+        if: ${{ hashFiles('paper/TaskNet-ELU-preprint-v0.1.0.tex') != '' }}
+        run: |
+          pdflatex -interaction=nonstopmode -halt-on-error -output-directory=paper paper/TaskNet-ELU-preprint-v0.1.0.tex
+          pdflatex -interaction=nonstopmode -halt-on-error -output-directory=paper paper/TaskNet-ELU-preprint-v0.1.0.tex
+
+      - name: Require LaTeX source before release
+        run: test -f paper/TaskNet-ELU-preprint-v0.1.0.tex
+
+      - name: Ensure validation leaves repository clean
+        run: git diff --exit-code

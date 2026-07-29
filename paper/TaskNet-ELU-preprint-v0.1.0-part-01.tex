@@ -1,0 +1,78 @@
+\documentclass[11pt,letterpaper]{article}
+% ==========================================================
+%  TaskNet-ELU --- Preprint v0.1.0
+%  Compilar desde la raiz del repositorio:
+%  pdflatex -interaction=nonstopmode -halt-on-error -output-directory=paper paper/TaskNet-ELU-preprint-v0.1.0.tex
+%  pdflatex -interaction=nonstopmode -halt-on-error -output-directory=paper paper/TaskNet-ELU-preprint-v0.1.0.tex
+%  Requiere figuras en results/figures/
+% ==========================================================
+
+\usepackage{cmap}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+
+\IfFileExists{spanish.ldf}
+  {\usepackage[spanish,es-noshorthands]{babel}}
+  {\usepackage{babel}\babelprovide[import,main]{spanish}}
+
+\usepackage{amsmath,amssymb,amsfonts,mathtools}
+\usepackage{geometry}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\graphicspath{{./}{../}}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage[protrusion=true,expansion=false]{microtype}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black]{hyperref}
+\hypersetup{
+  pdftitle={TaskNet-ELU: un protocolo experimental de utilidad por byte para comunicación orientada a tarea},
+  pdfauthor={Juan Felipe Orozco},
+  pdfsubject={Preprint técnico sobre comunicación orientada a tarea y utilidad por byte},
+  pdfkeywords={comunicación orientada a tarea, comunicación semántica, utilidad por byte, representaciones aprendidas, transmisión selectiva}
+}
+\usepackage{caption}
+
+\captionsetup{font=small,labelfont=bf}
+\geometry{left=2.6cm,right=2.6cm,top=2.6cm,bottom=2.8cm}
+\setlength{\parskip}{0.45em}
+\setlength{\parindent}{0pt}
+
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+
+\newcommand{\ELU}{\mathrm{ELU}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Prob}{\mathbb{P}}
+\newcommand{\ind}{\mathbf{1}}
+\newcommand{\eps}{\varepsilon}
+
+\title{\bfseries TaskNet-ELU: un protocolo experimental de utilidad por byte\\
+para comunicaci\'on orientada a tarea\\[0.35em]
+\large Representaciones compactas, baselines expl\'icitos y una pol\'itica de transmisi\'on por umbral}
+
+\author{Juan Felipe Orozco\\
+\small Investigaci\'on independiente --- Ingenier\'ia de Telecomunicaciones\\
+\small C\'odigo y datos: \url{https://github.com/topassky3/tasknet-elu}\\
+\small DOI: pendiente de publicaci\'on en Zenodo}
+
+\date{8 de julio de 2026\\[0.4em]\small\itshape Versi\'on 0.1.0. Preprint no revisado por pares.}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent
+Las redes de comunicaci\'on transportan datos sin observar directamente la decisi\'on que esos datos deben habilitar. Este trabajo eval\'ua, en bancos de prueba controlados, cu\'anta utilidad de decisi\'on conserva cada byte transmitido y cu\'ando conviene no transmitir. Se propone y aplica un protocolo experimental para comunicaci\'on orientada a tarea: receptores independientes por representaci\'on, medici\'on reproducible de bytes seg\'un el tipo de representaci\'on, \emph{embeddings} cuantizados y reconstruidos antes de evaluar, y veredictos que exigen conservar utilidad antes de premiar eficiencia. En Fashion-MNIST y CIFAR-10, bajo el cat\'alogo de representaciones evaluado, un \emph{embedding} aprendido de 32--64 dimensiones conserv\'o la exactitud del dato completo con 90{,}2\%--97{,}4\% menos bytes (0{,}8925 vs.\ 0{,}8895 en Fashion-MNIST; 0{,}7200 vs.\ 0{,}7136 en CIFAR-10). Bajo este protocolo, el \emph{embedding} domin\'o en Pareto a las representaciones cl\'asicas evaluadas (PNG, JPEG a cinco calidades y reducciones de resoluci\'on) y alcanz\'o una utilidad por byte aproximadamente 7{,}9$\times$ y 19{,}1$\times$ mayor que el mejor cl\'asico que conserv\'o utilidad en Fashion-MNIST y CIFAR-10, respectivamente. En estos dos bancos de prueba, la ventaja relativa aument\'o al pasar de Fashion-MNIST a CIFAR-10. Adem\'as, una pol\'itica de transmisi\'on por umbral basada en un estimador de valor marginal frente al silencio redujo 92{,}0\% los bytes frente a transmitir siempre el dato original con p\'erdida menor a 3 puntos, y captur\'o cerca del 88\% del ahorro marginal alcanzable por un or\'aculo respecto a transmitir siempre el \emph{embedding}. La contribuci\'on declarada no es presentar una teor\'ia nueva de comunicaci\'on orientada a tarea, sino un protocolo de medici\'on reproducible y honesto, con baselines, or\'aculo, criterios de \'exito y amenazas a la validez expl\'icitos. El c\'odigo, las tablas y las figuras est\'an disponibles en \url{https://github.com/topassky3/tasknet-elu}; el DOI de Zenodo queda pendiente de publicaci\'on.
+\end{abstract}
+
+% ==========================================================
+\section{Introducci\'on}
+
+La infraestructura actual de Internet mueve paquetes con eficacia, pero no observa el prop\'osito de esos paquetes: desde la capa de red, una alerta m\'edica, una clase virtual y un video recreativo son tr\'afico. Una l\'inea activa de investigaci\'on para redes 6G ---comunicaci\'on sem\'antica y orientada a objetivos [9,8], junto con redes basadas en intenci\'on [10]--- propone que la red incorpore informaci\'on sobre la tarea que el dato debe habilitar.
+
+Este trabajo aborda una pregunta operativa dentro de esa visi\'on: \emph{\textquestiondown cu\'anta informaci\'on necesita viajar para que una decisi\'on se conserve, y cu\'ando el dato no amerita el costo de enviarlo?} El marco de trabajo se denomina TaskNet-ELU, por Energ\'ia--Latencia--Utilidad. Su frase gu\'ia es motivacional, no un teorema cerrado: \emph{si un dato no mejora la decisi\'on m\'as de lo que cuesta enviarlo, ese dato no deber\'ia viajar}.
+
+\textbf{Posicionamiento.} La idea de enviar informaci\'on en funci\'on de su valor para una decisi\'on no es nueva. Se relaciona con el valor de la informaci\'on [2], el \emph{Information Bottleneck} [3], la teor\'ia tasa--distorsi\'on [4], el metarrazonamiento [5] y la literatura reciente de comunicaciones sem\'anticas y orientadas a tarea [9,8]. La contribuci\'on que este trabajo s\'i reclama es experimental: (i) un protocolo de medici\'on dise\~nado para reducir sesgos metodol\'ogicos y comparaciones enga\~nosas; (ii) mediciones de la frontera utilidad--bytes y de la comparaci\'on entre representaciones aprendidas y compresi\'on cl\'asica; (iii) una pol\'itica de transmisi\'on por umbral evaluada contra baselines y un or\'aculo; y (iv) criterios de \'exito, falsaci\'on y amenazas a la validez documentados.
+

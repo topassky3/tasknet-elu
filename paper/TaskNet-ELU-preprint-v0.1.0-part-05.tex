@@ -1,0 +1,60 @@
+\textbf{Hardware y determinismo.} Las corridas reportadas se obtuvieron en CPU con PyTorch. Cada fase usa semillas expl\'icitas y reporta medias y desviaciones est\'andar entre tres semillas. Fashion-MNIST y CIFAR-10 se descargan mediante \texttt{torchvision}. Los comandos definitivos de reproducci\'on quedan documentados en el \texttt{README} del repositorio.
+
+\textbf{Figuras.} Este archivo LaTeX referencia nombres reales generados por los scripts y ubicados en \path{results/figures/}:
+\begin{itemize}[leftmargin=1.4em,itemsep=1pt,topsep=2pt]
+\item \path{accuracy_vs_bytes.png}
+\item \path{phase2_learned_vs_classic_frontier.png}
+\item \path{phase3_accuracy_vs_bytes.png}
+\item \path{phase4_traffic_utility.png}
+\end{itemize}
+
+% ==========================================================
+\section{Amenazas a la validez}
+
+\textbf{Validez interna.} El \emph{embedding} proviene de un transmisor entrenado en la tarea; por tanto, su ventaja es una cota optimista aunque el receptor sea independiente. El softmax usado en Fase 4 no fue calibrado expl\'icitamente, de modo que $\widehat{\Delta U}$ debe interpretarse como score, no como utilidad verdadera. Los par\'ametros del cuantizador se asumen compartidos como metadatos y no se cuentan por muestra. El bit de se\~nalizaci\'on transmitir/callar no se contabiliza.
+
+\textbf{Validez de constructo.} gzip es una regla de medici\'on reproducible, no un compresor \'optimo ni una estimaci\'on exacta de entrop\'ia. La latencia reportada es inferencia del receptor por muestra, no latencia de red ni energ\'ia f\'isica. El SSP emp\'irico depende del cat\'alogo de representaciones evaluado y no prueba un m\'inimo te\'orico absoluto.
+
+\textbf{Validez externa.} Fashion-MNIST y CIFAR-10 son bancos de laboratorio; los resultados no se generalizan autom\'aticamente a redes reales, datos multimodales, canales con ruido, tr\'afico multiusuario o tareas con costos asim\'etricos. Los modelos usados son peque\~nos y fueron ejecutados en CPU.
+
+\textbf{Fase 4.} El silencio se implementa como clase mayoritaria, lo que limita el ahorro marginal posible en datasets balanceados. El or\'aculo usa verdad de terreno y solo sirve como techo no desplegable.
+
+% ==========================================================
+\section{Limitaciones}
+
+Este trabajo debe leerse como una prueba experimental acotada, no como una teor\'ia general de redes orientadas a tarea. La comparaci\'on contra JPEG/PNG es informativa, pero no cubre todos los codecs, autoencoders, t\'ecnicas de compresi\'on neuronal ni esquemas de comunicaci\'on con canal real. Tampoco se mide energ\'ia f\'isica, congesti\'on, colas, retransmisiones ni latencia de red. La pol\'itica ELU se eval\'ua en clasificaci\'on balanceada; tareas con clases desbalanceadas, costos de error distintos o utilidad no binaria podr\'ian cambiar la regla operativa.
+
+% ==========================================================
+\section{Trabajo relacionado}
+
+La medici\'on de informaci\'on y los l\'imites de la compresi\'on se remontan a Shannon [1]. El valor de la informaci\'on para decisiones se formaliza desde Howard [2]. El \emph{Information Bottleneck} [3] comprime $X$ conservando informaci\'on relevante para $Y$. La teor\'ia tasa--distorsi\'on [4] minimiza tasa sujeta a distorsi\'on; en este trabajo, la distorsi\'on se induce por la tarea mediante p\'erdida de utilidad de decisi\'on, no por fidelidad visual. Las comunicaciones sem\'anticas y orientadas a objetivo [9,8] y las redes basadas en intenci\'on [10] desarrollan la visi\'on de sistema. El metarrazonamiento de Russell y Wefald [5] formaliza decisiones computacionales basadas en valor esperado y costo; la regla $\Delta U>\lambda C$ puede verse como una instancia de esa idea aplicada a transmisi\'on.
+
+% ==========================================================
+\section{Trabajo futuro}
+
+Cuatro extensiones son inmediatas. Primero, evaluar extractores no entrenados en la tarea para reducir la cota optimista del \emph{embedding}. Segundo, aplicar el mismo instrumento de cuantizaci\'on y compresi\'on a los pesos $W$ del modelo, barriendo el tama\~no del conjunto de entrenamiento, para explorar la relaci\'on entre bytes comprimidos de pesos, brecha de generalizaci\'on y SSP de la tarea, en di\'alogo con cotas informacionales de generalizaci\'on [11]. Tercero, aplicar una regla de valor marginal a asignaci\'on de c\'omputo, por ejemplo en b\'usqueda de ajedrez, donde el costo es n\'umero de nodos y la utilidad es mejora de decisi\'on. Cuarto, construir un simulador multi-nodo con varios transmisores compitiendo por un presupuesto de canal, para acercar el protocolo a redes orientadas a intenciones.
+
+% ==========================================================
+\section{Conclusi\'on}
+
+Bajo un protocolo experimental reproducible y un cat\'alogo declarado de representaciones, este trabajo midi\'o que una representaci\'on sem\'antica compacta puede conservar la decisi\'on con 90{,}2\%--97{,}4\% menos bytes que el dato completo en Fashion-MNIST y CIFAR-10. En estos bancos, el \emph{embedding} domin\'o en Pareto a las representaciones cl\'asicas evaluadas y obtuvo mayor utilidad por byte que el mejor cl\'asico que conserv\'o utilidad. Adem\'as, una pol\'itica de transmisi\'on por umbral basada en un score de valor marginal frente al silencio redujo 92{,}0\% los bytes respecto a transmitir siempre el dato original con p\'erdida menor a 3 puntos, y captur\'o cerca del 88\% del ahorro marginal alcanzable por un or\'aculo respecto a transmitir siempre el \emph{embedding}. Estos resultados no prueban una ley universal; aportan evidencia controlada de que medir utilidad por byte y valor marginal puede convertir una idea conocida de comunicaci\'on orientada a tarea en un protocolo evaluable, falsable y reproducible. El paso siguiente no es ampliar los claims, sino publicar artefactos, facilitar reproducci\'on independiente y probar variantes menos optimistas del transmisor.
+
+% ==========================================================
+\begin{thebibliography}{12}\small
+
+\bibitem{shannon1948} C.~E. Shannon, ``A Mathematical Theory of Communication'',
+\emph{Bell System Technical Journal}, vol.~27, 1948.
+
+\bibitem{howard1966} R.~A. Howard, ``Information Value Theory'',
+\emph{IEEE Transactions on Systems Science and Cybernetics}, vol.~2, no.~1, 1966.
+
+\bibitem{tishby1999} N.~Tishby, F.~C. Pereira, W.~Bialek, ``The Information Bottleneck Method'',
+\emph{Proc. 37th Allerton Conference}, 1999.
+
+\bibitem{berger1971} T.~Berger, \emph{Rate Distortion Theory: A Mathematical Basis for Data Compression}, Prentice-Hall, 1971.
+
+\bibitem{russell1991} S.~Russell, E.~Wefald, ``Principles of Metareasoning'',
+\emph{Artificial Intelligence}, vol.~49, 1991.
+
+\bibitem{xiao2017} H.~Xiao, K.~Rasul, R.~Vollgraf, ``Fashion-MNIST: a Novel Image Dataset for Benchmarking Machine Learning Algorithms'', arXiv:1708.07747, 2017.
+

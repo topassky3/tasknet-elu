@@ -8,11 +8,14 @@ import csv
 import hashlib
 import json
 import re
-import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 MANIFEST = ROOT / "release" / "MANIFEST.sha256"
+PAPER_PARTS = [
+    f"paper/TaskNet-ELU-preprint-v0.1.0-part-{index:02d}.tex"
+    for index in range(1, 7)
+]
 
 REQUIRED = [
     "README.md",
@@ -24,7 +27,10 @@ REQUIRED = [
     "docs/release-audit-v0.1.0.md",
     "docs/REPRODUCIBILITY.md",
     "docs/ZENODO_PUBLISHING.md",
+    "release/RELEASE_NOTES_v0.1.0.md",
+    "paper/TaskNet-ELU-preprint-v0.1.0.tex",
     "paper/TaskNet-ELU-preprint-v0.1.0.pdf",
+    *PAPER_PARTS,
     "scripts/00_phase0_check.py",
     "scripts/01_utility_per_bit_fashion_mnist.py",
     "scripts/02_learned_vs_classic.py",
@@ -52,12 +58,30 @@ def validate_metadata(errors: list[str]) -> None:
         fail(f".zenodo.json inválido: {exc}", errors)
         return
 
-    for key in ("title", "description", "creators", "version", "upload_type", "publication_type", "license"):
+    for key in (
+        "title",
+        "description",
+        "creators",
+        "version",
+        "upload_type",
+        "publication_type",
+        "license",
+    ):
         if not metadata.get(key):
             fail(f"Falta el campo Zenodo: {key}", errors)
 
+    if metadata.get("version") != "0.1.0":
+        fail("La versión de .zenodo.json no es 0.1.0", errors)
+    if metadata.get("publication_type") != "preprint":
+        fail("Zenodo debe declarar publication_type=preprint", errors)
+
     cff = (ROOT / "CITATION.cff").read_text(encoding="utf-8")
-    for token in ("cff-version: 1.2.0", "version: 0.1.0", "family-names: Orozco", "given-names: Juan Felipe"):
+    for token in (
+        "cff-version: 1.2.0",
+        "version: 0.1.0",
+        "family-names: Orozco",
+        "given-names: Juan Felipe",
+    ):
         if token not in cff:
             fail(f"CITATION.cff no contiene: {token}", errors)
 
@@ -65,6 +89,27 @@ def validate_metadata(errors: list[str]) -> None:
     for path in (ROOT / "README.md", ROOT / "CITATION.cff", ROOT / ".zenodo.json"):
         if path.exists() and suspicious_doi.search(path.read_text(encoding="utf-8")):
             fail(f"Se detectó un DOI antes de la publicación: {path.relative_to(ROOT)}", errors)
+
+
+def validate_paper_source(errors: list[str]) -> None:
+    wrapper = ROOT / "paper/TaskNet-ELU-preprint-v0.1.0.tex"
+    if not wrapper.exists():
+        return
+    text = wrapper.read_text(encoding="utf-8")
+    for part in PAPER_PARTS:
+        if part not in text:
+            fail(f"La fuente principal no incluye {part}", errors)
+
+    combined = "".join((ROOT / part).read_text(encoding="utf-8") for part in PAPER_PARTS)
+    for token in (
+        r"\documentclass",
+        "TaskNet-ELU",
+        "Versi\\'on 0.1.0",
+        "Preprint no revisado por pares",
+        r"\end{document}",
+    ):
+        if token not in combined:
+            fail(f"La fuente LaTeX no contiene el marcador esperado: {token}", errors)
 
 
 def read_csv(path: str) -> list[dict[str, str]]:
@@ -119,13 +164,20 @@ def validate_claims(errors: list[str]) -> None:
 
     try:
         phase4 = read_csv("results/tables/elu_policy_comparison.csv")
-        elu_half = next(r for r in phase4 if r.get("policy") == "elu" and "0.500" in str(r.get("param", "")))
-        conf_half = next(r for r in phase4 if r.get("policy") == "confidence" and "0.500" in str(r.get("param", "")))
+        elu_half = next(
+            row
+            for row in phase4
+            if row.get("policy") == "elu" and "0.500" in str(row.get("param", ""))
+        )
+        conf_half = next(
+            row
+            for row in phase4
+            if row.get("policy") == "confidence" and "0.500" in str(row.get("param", ""))
+        )
         if as_float(elu_half, "utility") <= as_float(conf_half, "utility"):
             fail("ELU q=0.5 no supera a confianza q=0.5", errors)
-        elu_rows = [r for r in phase4 if r.get("policy") == "elu"]
-        best = max(elu_rows, key=lambda r: as_float(r, "utility"))
-        if as_float(best, "utility") < 0.86:
+        elu_rows = [row for row in phase4 if row.get("policy") == "elu"]
+        if max(as_float(row, "utility") for row in elu_rows) < 0.86:
             fail("No se encontró un punto ELU compatible con el resultado principal", errors)
     except Exception as exc:
         fail(f"No fue posible validar Fase 4: {exc}", errors)
@@ -143,11 +195,20 @@ def artifact_files() -> list[Path]:
             if any(str(path).endswith(suffix) for suffix in EXCLUDED_SUFFIXES):
                 continue
             files.append(path)
-    for name in ("README.md", "LICENSE", "LICENSES.md", "CITATION.cff", ".zenodo.json", "CHANGELOG.md"):
+
+    for name in (
+        "README.md",
+        "LICENSE",
+        "LICENSES.md",
+        "CITATION.cff",
+        ".zenodo.json",
+        "CHANGELOG.md",
+    ):
         path = ROOT / name
         if path.exists():
             files.append(path)
-    return sorted(set(files), key=lambda p: p.relative_to(ROOT).as_posix())
+
+    return sorted(set(files), key=lambda path: path.relative_to(ROOT).as_posix())
 
 
 def sha256(path: Path) -> str:
@@ -159,7 +220,10 @@ def sha256(path: Path) -> str:
 
 
 def manifest_text() -> str:
-    return "".join(f"{sha256(path)}  {path.relative_to(ROOT).as_posix()}\n" for path in artifact_files())
+    return "".join(
+        f"{sha256(path)}  {path.relative_to(ROOT).as_posix()}\n"
+        for path in artifact_files()
+    )
 
 
 def main() -> int:
@@ -177,8 +241,11 @@ def main() -> int:
     readme = (ROOT / "README.md").read_text(encoding="utf-8") if (ROOT / "README.md").exists() else ""
     if "TaskNet_ELU_preprint_v10" in readme:
         fail("README conserva una ruta obsoleta del paper", errors)
+    if "no localizó todavía" in readme or "permanece bloqueada" in readme:
+        fail("README contiene texto interno de auditoría", errors)
 
     validate_metadata(errors)
+    validate_paper_source(errors)
     validate_claims(errors)
 
     expected = manifest_text()
@@ -196,6 +263,7 @@ def main() -> int:
     if errors:
         print(f"Verificación fallida con {len(errors)} problema(s).")
         return 1
+
     print("Release v0.1.0 verificada correctamente.")
     return 0
 

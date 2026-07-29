@@ -4,28 +4,41 @@
 
 > Si un dato no mejora la decisión más de lo que cuesta enviarlo, ese dato no debería viajar.
 
-TaskNet-ELU estudia cuánta información debe transmitirse para conservar una decisión. Compara datos originales, compresión clásica, reducciones de resolución, representaciones aprendidas, decisiones ya tomadas, silencio y políticas de transmisión selectiva en Fashion-MNIST y CIFAR-10.
+TaskNet-ELU estudia cuánta información debe transmitirse para conservar una decisión. El repositorio compara datos originales, compresión clásica, reducciones de resolución, representaciones aprendidas, decisiones ya tomadas, silencio y políticas de transmisión selectiva sobre Fashion-MNIST y CIFAR-10.
 
-La contribución declarada es un **protocolo experimental reproducible**. No se propone una teoría general nueva de comunicaciones.
+La contribución es un **protocolo experimental reproducible** para medir utilidad frente a bytes transmitidos. El trabajo no presenta una teoría general nueva de comunicaciones.
 
-## Estado
+## Preprint
 
-- Versión: `v0.1.0-preprint`.
-- Estado editorial: preprint técnico, no revisado por pares.
-- Autor: Juan Felipe Orozco.
-- Afiliación declarada: Investigación independiente — Ingeniería de Telecomunicaciones.
-- DOI: pendiente de publicación en Zenodo.
-- PDF: [`paper/TaskNet-ELU-preprint-v0.1.0.pdf`](paper/TaskNet-ELU-preprint-v0.1.0.pdf).
+- **Versión:** `v0.1.0`
+- **Estado editorial:** preprint técnico, no revisado por pares
+- **Autor:** Juan Felipe Orozco
+- **Afiliación declarada:** Investigación independiente — Ingeniería de Telecomunicaciones
+- **DOI:** pendiente de publicación en Zenodo
+- **Documento:** [`paper/TaskNet-ELU-preprint-v0.1.0.pdf`](paper/TaskNet-ELU-preprint-v0.1.0.pdf)
+- **Fuente LaTeX:** [`paper/TaskNet-ELU-preprint-v0.1.0.tex`](paper/TaskNet-ELU-preprint-v0.1.0.tex)
 
 ## Resultados principales
 
-Bajo el catálogo y protocolo evaluados:
+Bajo el catálogo, los modelos y el protocolo evaluados:
 
-- el embedding conservó la exactitud del dato completo con aproximadamente 90,2 % menos bytes en Fashion-MNIST;
-- en CIFAR-10 conservó utilidad con aproximadamente 97,4 % menos bytes que el PNG original;
-- el embedding mostró aproximadamente 7,9× y 19,1× más utilidad por byte que el mejor clásico que conservó utilidad en Fashion-MNIST y CIFAR-10, respectivamente;
-- la política ELU redujo 92,0 % los bytes frente a transmitir siempre el original, con pérdida menor a tres puntos de exactitud;
-- estos resultados no constituyen una ley universal y están limitados a los datasets, modelos y representaciones evaluados.
+- el *embedding* conservó la exactitud del dato completo con aproximadamente **90,2 % menos bytes** en Fashion-MNIST;
+- en CIFAR-10 conservó utilidad con aproximadamente **97,4 % menos bytes** que el PNG original;
+- obtuvo aproximadamente **7,9×** y **19,1×** más utilidad por byte que el mejor método clásico que conservó utilidad en Fashion-MNIST y CIFAR-10, respectivamente;
+- la política ELU redujo **92,0 %** los bytes frente a transmitir siempre el original, con una pérdida inferior a tres puntos de exactitud;
+- estos resultados son evidencia experimental acotada y no una garantía universal.
+
+## Estructura
+
+```text
+paper/             preprint en PDF y fuente LaTeX
+scripts/           experimentos y verificadores de release
+results/tables/    resultados tabulares en CSV
+results/figures/   figuras generadas
+reports/           informes y cierres de cada fase
+docs/              reproducibilidad y publicación en Zenodo
+release/           notas y manifiesto SHA-256
+```
 
 ## Instalación
 
@@ -61,13 +74,20 @@ python scripts/03_cifar10_validation_v3.py
 python scripts/04_elu_threshold_policy.py
 ```
 
-Los resultados se escriben en:
+Los scripts escriben sus artefactos en `results/tables/`, `results/figures/` y `reports/`. Fashion-MNIST y CIFAR-10 no se redistribuyen: se descargan mediante `torchvision` o se toman de la caché local.
 
-- `results/tables/`;
-- `results/figures/`;
-- `reports/`.
+## Compilar el preprint
 
-Fashion-MNIST y CIFAR-10 no se redistribuyen; los scripts los descargan o usan la caché local.
+Desde la raíz del repositorio:
+
+```bash
+pdflatex -interaction=nonstopmode -halt-on-error \
+  -output-directory=paper \
+  paper/TaskNet-ELU-preprint-v0.1.0.tex
+pdflatex -interaction=nonstopmode -halt-on-error \
+  -output-directory=paper \
+  paper/TaskNet-ELU-preprint-v0.1.0.tex
+```
 
 ## Reproducir y verificar la release
 
@@ -76,56 +96,30 @@ python scripts/00_phase0_check.py
 python scripts/05_verify_release.py --check
 ```
 
-Para regenerar el manifiesto determinista después de cualquier cambio en los artefactos:
+El manifiesto `release/MANIFEST.sha256` registra hashes SHA-256 deterministas de los artefactos de la release. GitHub Actions valida la estructura, los metadatos, los principales resultados frente a los CSV, la compilación del preprint y la integridad del manifiesto.
 
-```bash
-python scripts/05_verify_release.py --write-manifest
-python scripts/05_verify_release.py --check
-```
+Documentación detallada:
 
-La documentación detallada está en:
+- [`docs/REPRODUCIBILITY.md`](docs/REPRODUCIBILITY.md)
+- [`docs/ZENODO_PUBLISHING.md`](docs/ZENODO_PUBLISHING.md)
+- [`release/RELEASE_NOTES_v0.1.0.md`](release/RELEASE_NOTES_v0.1.0.md)
 
-- [`docs/REPRODUCIBILITY.md`](docs/REPRODUCIBILITY.md);
-- [`docs/release-audit-v0.1.0.md`](docs/release-audit-v0.1.0.md);
-- [`docs/ZENODO_PUBLISHING.md`](docs/ZENODO_PUBLISHING.md).
-
-## Fuente del preprint
-
-El PDF final de esta versión está en:
-
-```text
-paper/TaskNet-ELU-preprint-v0.1.0.pdf
-```
-
-La auditoría de release no localizó todavía en la rama base un archivo `.tex` con el nombre final. La publicación en Zenodo debe permanecer bloqueada hasta recuperar o confirmar la fuente LaTeX real, compilarla dos veces y verificar que produce el PDF esperado.
-
-## Qué se mide
-
-- exactitud de la decisión;
-- bytes promedio por representación;
-- utilidad por byte;
-- ahorro frente al dato original;
-- dominancia de Pareto;
-- políticas selectivas de transmisión;
-- comparación contra baselines y un oráculo no desplegable.
-
-## Qué no se afirma
+## Alcance y límites
 
 TaskNet-ELU no afirma:
 
-- haber creado una teoría nueva de comunicaciones;
 - haber encontrado un mínimo teórico absoluto de información;
-- que el embedding sea óptimo;
+- que el *embedding* sea óptimo;
 - que gzip mida entropía real;
-- que las latencias sean mediciones físicas de red;
+- que los tiempos de inferencia sean latencia física de red;
 - que el oráculo sea desplegable;
-- que los resultados se generalicen automáticamente a redes reales.
+- que los resultados se generalicen automáticamente a canales o redes reales.
 
 ## Cita provisional
 
-Hasta que exista un DOI, cite esta versión como:
+Hasta que exista un DOI:
 
-> Orozco, Juan Felipe (2026). *TaskNet-ELU: un protocolo experimental de utilidad por byte para comunicación orientada a tarea*. Versión 0.1.0, preprint técnico no revisado por pares. GitHub: https://github.com/topassky3/tasknet-elu
+> Orozco, Juan Felipe (2026). *TaskNet-ELU: un protocolo experimental de utilidad por byte para comunicación orientada a tarea*. Versión 0.1.0. Preprint técnico no revisado por pares.
 
 ```bibtex
 @misc{orozco2026tasknetelu,
@@ -139,12 +133,12 @@ Hasta que exista un DOI, cite esta versión como:
 }
 ```
 
-Después de publicar en Zenodo, sustituya esta cita provisional por la cita exportada con el DOI definitivo.
+Tras la publicación en Zenodo, esta cita deberá sustituirse por la cita que incluya el DOI definitivo.
 
 ## Licencias
 
-- Código fuente original: MIT.
-- Paper, documentación, tablas y figuras originales: CC BY 4.0.
+- Código fuente original: **MIT**.
+- Paper, documentación, tablas y figuras originales: **CC BY 4.0**.
 - Datasets y materiales de terceros: conservan sus licencias originales.
 
 Consulte [`LICENSE`](LICENSE) y [`LICENSES.md`](LICENSES.md).

@@ -167,20 +167,26 @@ def validate_claims(errors: list[str]) -> None:
         elu_half = next(
             row
             for row in phase4
-            if row.get("policy") == "elu" and "0.500" in str(row.get("param", ""))
+            if row.get("policy") == "elu_threshold" and row.get("param") == "q=0.500"
         )
         conf_half = next(
             row
             for row in phase4
-            if row.get("policy") == "confidence" and "0.500" in str(row.get("param", ""))
+            if row.get("policy") == "confidence" and row.get("param") == "q=0.500"
         )
         if as_float(elu_half, "utility") <= as_float(conf_half, "utility"):
             fail("ELU q=0.5 no supera a confianza q=0.5", errors)
-        elu_rows = [row for row in phase4 if row.get("policy") == "elu"]
-        if max(as_float(row, "utility") for row in elu_rows) < 0.86:
-            fail("No se encontró un punto ELU compatible con el resultado principal", errors)
+
+        elu_rows = [row for row in phase4 if row.get("policy") == "elu_threshold"]
+        best_within_epsilon = next(
+            row for row in elu_rows if row.get("param") == "q=0.833"
+        )
+        if not close(as_float(best_within_epsilon, "utility"), 0.8696, 0.002):
+            fail("El mejor punto ELU dentro de epsilon no coincide", errors)
+        if not close(as_float(best_within_epsilon, "mean_bytes"), 41.1, 0.2):
+            fail("Los bytes del mejor punto ELU no coinciden", errors)
     except Exception as exc:
-        fail(f"No fue posible validar Fase 4: {exc}", errors)
+        fail(f"No fue posible validar Fase 4: {exc!r}", errors)
 
 
 def artifact_files() -> list[Path]:

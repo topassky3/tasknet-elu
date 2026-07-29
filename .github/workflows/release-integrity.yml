@@ -64,7 +64,7 @@ jobs:
       - name: Commit refreshed manifest on the release branch
         if: github.ref_name == 'release/v0.1.0-zenodo' || github.head_ref == 'release/v0.1.0-zenodo'
         run: |
-          if git diff --quiet -- release/MANIFEST.sha256; then
+          if [ -z "$(git status --porcelain -- release/MANIFEST.sha256)" ]; then
             echo "Manifest already current."
           else
             git config user.name "github-actions[bot]"

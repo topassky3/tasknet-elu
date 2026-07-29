@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the current TaskNet-ELU repository structure without running experiments."""
+"""Validate the TaskNet-ELU v0.1.0 repository without running experiments."""
 
 from __future__ import annotations
 
@@ -20,6 +20,11 @@ REQUIRED_DIRS = [
     "release",
 ]
 
+PAPER_PARTS = [
+    f"paper/TaskNet-ELU-preprint-v0.1.0-part-{index:02d}.tex"
+    for index in range(1, 7)
+]
+
 REQUIRED_FILES = [
     "README.md",
     "requirements.txt",
@@ -34,7 +39,9 @@ REQUIRED_FILES = [
     "scripts/03_cifar10_validation_v3.py",
     "scripts/04_elu_threshold_policy.py",
     "scripts/05_verify_release.py",
+    "paper/TaskNet-ELU-preprint-v0.1.0.tex",
     "paper/TaskNet-ELU-preprint-v0.1.0.pdf",
+    *PAPER_PARTS,
     "results/tables/utility_per_byte_fashion_mnist.csv",
     "results/tables/learned_vs_classic_fashion_mnist.csv",
     "results/tables/cifar10_learned_vs_classic.csv",

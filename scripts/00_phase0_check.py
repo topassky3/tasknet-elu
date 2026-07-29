@@ -1,148 +1,94 @@
 #!/usr/bin/env python3
-"""
-00_phase0_check.py — Verificacion de la Fase 0 de TaskNet-ELU.
-
-Comprueba que la estructura minima del repositorio existe, que el paquete
-src/tasknet_elu es importable y que las dependencias principales estan
-instaladas. NO ejecuta ningun experimento.
-
-Uso:
-    python scripts/00_phase0_check.py
-"""
+"""Validate the current TaskNet-ELU repository structure without running experiments."""
 
 from __future__ import annotations
 
-import importlib
+import importlib.metadata
+import platform
 import sys
 from pathlib import Path
 
-# Raiz del proyecto = carpeta padre de este script (.../tasknet-elu/scripts -> tasknet-elu)
 ROOT = Path(__file__).resolve().parent.parent
 
-# ---- 1. Carpetas y archivos minimos que deben existir ----
 REQUIRED_DIRS = [
-    "data/raw",
-    "data/processed",
     "scripts",
-    "src/tasknet_elu",
     "results/tables",
     "results/figures",
     "reports",
     "paper",
+    "docs",
+    "release",
 ]
 
 REQUIRED_FILES = [
     "README.md",
     "requirements.txt",
+    "LICENSE",
+    "LICENSES.md",
+    "CITATION.cff",
+    ".zenodo.json",
+    "CHANGELOG.md",
     "scripts/00_phase0_check.py",
-    "src/tasknet_elu/__init__.py",
-    "src/tasknet_elu/datasets.py",
-    "src/tasknet_elu/models.py",
-    "src/tasknet_elu/receivers.py",
-    "src/tasknet_elu/representations.py",
-    "src/tasknet_elu/serialize.py",
-    "src/tasknet_elu/metrics.py",
-    "src/tasknet_elu/ssp.py",
-    "src/tasknet_elu/plots.py",
+    "scripts/01_utility_per_bit_fashion_mnist.py",
+    "scripts/02_learned_vs_classic.py",
+    "scripts/03_cifar10_validation_v3.py",
+    "scripts/04_elu_threshold_policy.py",
+    "scripts/05_verify_release.py",
+    "paper/TaskNet-ELU-preprint-v0.1.0.pdf",
+    "results/tables/utility_per_byte_fashion_mnist.csv",
+    "results/tables/learned_vs_classic_fashion_mnist.csv",
+    "results/tables/cifar10_learned_vs_classic.csv",
+    "results/tables/elu_policy_comparison.csv",
+    "results/figures/accuracy_vs_bytes.png",
+    "results/figures/phase2_learned_vs_classic_frontier.png",
+    "results/figures/phase3_accuracy_vs_bytes.png",
+    "results/figures/phase4_traffic_utility.png",
 ]
 
-# Dependencias principales (import_name, paquete_pip)
-CORE_DEPS = [
-    ("numpy", "numpy"),
-    ("pandas", "pandas"),
-    ("matplotlib", "matplotlib"),
-    ("sklearn", "scikit-learn"),
+DEPENDENCIES = [
+    "numpy",
+    "pandas",
+    "matplotlib",
+    "scikit-learn",
+    "torch",
+    "torchvision",
+    "tqdm",
+    "Pillow",
 ]
-# Dependencias pesadas: se reportan, pero su ausencia NO bloquea la Fase 0.
-HEAVY_DEPS = [
-    ("torch", "torch"),
-    ("torchvision", "torchvision"),
-]
-
-
-def check_dirs() -> list[str]:
-    return [d for d in REQUIRED_DIRS if not (ROOT / d).is_dir()]
-
-
-def check_files() -> list[str]:
-    return [f for f in REQUIRED_FILES if not (ROOT / f).is_file()]
-
-
-def check_package_importable() -> str | None:
-    """Devuelve None si el paquete importa; si no, el mensaje de error."""
-    src = str(ROOT / "src")
-    if src not in sys.path:
-        sys.path.insert(0, src)
-    try:
-        pkg = importlib.import_module("tasknet_elu")
-        _ = pkg.__version__  # noqa: F841
-        return None
-    except Exception as exc:  # noqa: BLE001
-        return f"{type(exc).__name__}: {exc}"
-
-
-def check_deps(deps: list[tuple[str, str]]) -> list[str]:
-    """Devuelve la lista de paquetes pip faltantes."""
-    missing = []
-    for import_name, pip_name in deps:
-        try:
-            importlib.import_module(import_name)
-        except Exception:  # noqa: BLE001
-            missing.append(pip_name)
-    return missing
 
 
 def main() -> int:
-    print("==> Verificando Fase 0 TaskNet-ELU...")
-    print(f"Raiz del proyecto: {ROOT}")
+    print("==> TaskNet-ELU v0.1.0: verificación estructural")
+    print(f"Raíz: {ROOT}")
+    print(f"Python: {sys.version.split()[0]}")
+    print(f"Plataforma: {platform.platform()}")
 
     problems: list[str] = []
 
-    missing_dirs = check_dirs()
-    if missing_dirs:
-        problems.append("Faltan carpetas: " + ", ".join(missing_dirs))
-    else:
-        print("Carpetas base: OK")
+    for directory in REQUIRED_DIRS:
+        if not (ROOT / directory).is_dir():
+            problems.append(f"Falta carpeta obligatoria: {directory}")
 
-    missing_files = check_files()
-    if missing_files:
-        problems.append("Faltan archivos: " + ", ".join(missing_files))
-    else:
-        print("Archivos base: OK")
+    for filename in REQUIRED_FILES:
+        if not (ROOT / filename).is_file():
+            problems.append(f"Falta archivo obligatorio: {filename}")
 
-    pkg_err = check_package_importable()
-    if pkg_err:
-        problems.append("El paquete tasknet_elu no importa: " + pkg_err)
-    else:
-        print("Paquete tasknet_elu: importable")
-
-    missing_core = check_deps(CORE_DEPS)
-    if missing_core:
-        problems.append("Faltan dependencias principales: " + ", ".join(missing_core))
-    else:
-        print("Dependencias principales: OK")
-
-    # torch/torchvision: informativo, no bloqueante en Fase 0
-    missing_heavy = check_deps(HEAVY_DEPS)
-    if missing_heavy:
-        print("Aviso: faltan (necesarias para la Fase 1, no para la Fase 0): "
-              + ", ".join(missing_heavy))
-    else:
+    print("\nDependencias detectadas:")
+    for distribution in DEPENDENCIES:
         try:
-            import torch
-            print(f"PyTorch: {torch.__version__}")
-            print(f"CUDA disponible: {torch.cuda.is_available()}")
-        except Exception:  # noqa: BLE001
-            pass
+            version = importlib.metadata.version(distribution)
+            print(f"  {distribution}: {version}")
+        except importlib.metadata.PackageNotFoundError:
+            print(f"  {distribution}: no instalada")
 
-    print("-" * 56)
+    print("-" * 64)
     if problems:
-        print("Fase 0 INCOMPLETA. Corrige lo siguiente:")
-        for p in problems:
-            print("  - " + p)
+        print("Verificación INCOMPLETA:")
+        for problem in problems:
+            print(f"  - {problem}")
         return 1
 
-    print("Fase 0 OK. Estructura, archivos base y entorno listos.")
+    print("Verificación estructural OK. No se ejecutaron experimentos.")
     return 0
 
 

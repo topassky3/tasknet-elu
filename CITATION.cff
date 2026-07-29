@@ -1,0 +1,34 @@
+cff-version: 1.2.0
+message: "Si utiliza TaskNet-ELU, cite esta versión del preprint y el repositorio asociado."
+title: "TaskNet-ELU: un protocolo experimental de utilidad por byte para comunicación orientada a tarea"
+version: 0.1.0
+date-released: 2026-07-29
+repository-code: "https://github.com/topassky3/tasknet-elu"
+url: "https://github.com/topassky3/tasknet-elu"
+license: CC-BY-4.0
+authors:
+  - family-names: Orozco
+    given-names: Juan Felipe
+abstract: >-
+  Protocolo experimental reproducible para medir utilidad de decisión por byte
+  en comunicación orientada a tarea. La versión 0.1.0 compara representaciones
+  originales, compresión clásica, reducciones de resolución, embeddings
+  aprendidos, decisiones, silencio y una política selectiva de transmisión en
+  Fashion-MNIST y CIFAR-10. Es un preprint no revisado por pares y no presenta
+  una teoría general nueva de comunicaciones.
+keywords:
+  - task-oriented communication
+  - semantic communication
+  - utility per byte
+  - learned representations
+  - reproducible research
+  - selective transmission
+preferred-citation:
+  type: article
+  title: "TaskNet-ELU: un protocolo experimental de utilidad por byte para comunicación orientada a tarea"
+  authors:
+    - family-names: Orozco
+      given-names: Juan Felipe
+  year: 2026
+  version: 0.1.0
+  notes: "Preprint técnico, no revisado por pares. DOI pendiente de publicación en Zenodo."

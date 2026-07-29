@@ -1,0 +1,80 @@
+\textbf{Resumen de contribuciones.} En t\'erminos operativos, el trabajo aporta: (1) una separaci\'on experimental entre representaciones visuales, sem\'anticas, decisi\'on ya tomada y silencio; (2) una regla de medici\'on de bytes reproducible y declarada por familia de representaci\'on; (3) una comparaci\'on aprendida-vs.-cl\'asica que exige conservar utilidad antes de premiar eficiencia; y (4) una pol\'itica de transmisi\'on por valor marginal frente al silencio, evaluada contra heur\'isticas simples y un or\'aculo.
+
+% ==========================================================
+\section{Marco formal resumido}
+
+Una fuente produce pares $(X,Y)\sim P_{XY}$: $X$ es el dato observado y $Y$ la variable de tarea. El transmisor emite $Z=\pi_e(X)$, donde $Z$ puede ser una representaci\'on transmitida o el s\'imbolo de silencio $\varnothing$; el receptor decide $A=\pi_d(\tilde Z)$. En estos experimentos se usa utilidad indicadora,
+\begin{equation}
+ u(a,y)=\ind\{a=y\},
+\end{equation}
+de modo que la utilidad de una pol\'itica es la exactitud:
+\begin{equation}
+ U(\pi)=\E\!\left[u\bigl(\pi_d(\tilde Z),Y\bigr)\right]=\Prob(A=Y).
+\end{equation}
+La utilidad no se atribuye a $Z$ de forma aislada: depende del par codificador--receptor $(\pi_e,\pi_d)$. Por eso el protocolo exige receptores independientes que solo vean la representaci\'on evaluada.
+
+Los costos considerados son los bytes esperados $B(\pi)$ de la representaci\'on serializada, y proxies declarados de energ\'ia y latencia. La forma compuesta usada para razonar sobre costo--utilidad es lagrangiana:
+\begin{equation}
+J_{\ELU}(\pi)=U(\pi)-\lambda_B B(\pi)-\lambda_E E(\pi)-\lambda_\tau \tau(\pi),\qquad \lambda_\bullet\ge 0.
+\end{equation}
+En este preprint no se presenta una medici\'on f\'isica de energ\'ia ni latencia de red: las latencias reportadas son tiempos de inferencia por muestra y se declaran como proxies de c\'omputo.
+
+Dos objetos organizan el an\'alisis. La frontera utilidad--tasa es
+\begin{equation}
+U^\star(B)=\sup_{\pi:B(\pi)\le B} U(\pi),
+\end{equation}
+no decreciente y acotada por $U_{\max}$. Sobre un cat\'alogo discreto de representaciones $\mathcal R$, el Punto de Saturaci\'on Sem\'antica se mide como
+\begin{equation}
+\mathrm{SSP}_{\eps}=\argmin_{r\in\mathcal R} B_r
+\quad\text{s.a.}\quad U_r\ge U_{\max}-\eps,
+\qquad \eps=0{,}03.
+\end{equation}
+Este SSP emp\'irico es una cota superior del m\'inimo real: otra representaci\'on no incluida en $\mathcal R$ podr\'ia lograr igual utilidad con menos bytes. Por tanto, el trabajo no afirma encontrar un m\'inimo te\'orico absoluto. Tambi\'en se distingue la frontera \emph{\'optima} $U^\star(B)$ de los puntos crudos medidos: la frontera te\'orica es no decreciente, mientras que las representaciones evaluadas pueden mostrar relaciones no mon\'otonas entre bytes y utilidad.
+
+El respaldo conceptual viene del principio de suficiencia: si $T=t(X)$ es suficiente para $Y$ en el sentido $Y\perp X\mid T$, entonces la utilidad \'optima alcanzable desde $T$ puede igualar la alcanzable desde $X$. Un \emph{embedding} aprendido puede interpretarse como estad\'istico aproximadamente suficiente para la tarea, pero al provenir de un transmisor entrenado en la tarea debe considerarse una cota optimista.
+
+Finalmente, la pol\'itica por muestra se motiva con una regla de valor marginal: transmitir cuando la ganancia esperada frente al silencio excede el costo en unidades de utilidad,
+\begin{equation}
+\Delta U(x)>\lambda C(x).
+\end{equation}
+La Fase 4 no observa $\Delta U(x)$ directamente; usa un score barato basado en el softmax del transmisor y lo compara contra heur\'isticas y un or\'aculo no desplegable.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[
+  node distance=7mm and 9mm,
+  caja/.style={draw, rounded corners=1.5pt, minimum height=7.5mm, inner xsep=2.2mm, font=\small},
+  et/.style={font=\scriptsize\itshape},
+  flecha/.style={-{Stealth[length=2.2mm]}, semithick}]
+\node[caja] (x) {$X$};
+\node[caja, right=of x] (tx) {transmisor $\pi_e$};
+\node[caja, right=of tx] (z) {$Z\in\{\varnothing,\ \text{\emph{embedding}},\ \dots\}$};
+\node[caja, right=of z] (rx) {receptor $\pi_d$};
+\node[caja, right=of rx] (a) {$A$};
+\draw[flecha] (x) -- (tx);
+\draw[flecha] (tx) -- (z) node[midway, above, et] {score $>\lambda C$?};
+\draw[flecha] (z) -- (rx) node[midway, above, et] {canal ($B$ bytes)};
+\draw[flecha] (rx) -- (a);
+\node[below=4.5mm of z, font=\small] (u) {$u(A,Y)=\ind\{A=Y\}\ \Rightarrow\ U=\Prob(A=Y)$};
+\end{tikzpicture}
+\caption{Escenario experimental. El transmisor observa $X$ y elige una representaci\'on $Z$ o silencio; un receptor independiente, que solo ve $Z$, decide $A$; la utilidad premia el acierto frente a $Y$.}
+\end{figure}
+
+% ==========================================================
+\section{Protocolo experimental}
+
+El protocolo tiene cuatro reglas principales.
+
+\textbf{Receptor independiente.} Cada representaci\'on accionable se eval\'ua con un modelo receptor entrenado por separado que solo ve esa representaci\'on. Esto evita evaluar un \emph{embedding} con la misma red que lo produjo. La etiqueta se mide contra la verdad de terreno porque representa una decisi\'on ya tomada. El silencio usa la clase mayoritaria del conjunto de entrenamiento.
+
+\textbf{Medici\'on reproducible de bytes.} Para vectores, \emph{embeddings}, etiquetas y representaciones tipo matriz \texttt{uint8}, se usa cuantizaci\'on a \texttt{uint8} y gzip. Para PNG/JPEG se usa el tama\~no real del contenedor de imagen. Esta medici\'on no es una estimaci\'on perfecta de entrop\'ia; es una regla de medici\'on declarada, reproducible y consistente por familia de representaci\'on.
+
+\textbf{Se mide lo que viajar\'ia.} El \emph{embedding} se cuantiza a \texttt{uint8}, se serializa, se reconstruye, y el receptor se entrena y eval\'ua sobre la versi\'on reconstruida. Los par\'ametros m\'inimo/m\'aximo del cuantizador se asumen compartidos de antemano como metadatos de calibraci\'on y no se cuentan por muestra.
+
+\textbf{Veredictos condicionados a conservar utilidad.} Una representaci\'on no se declara ganadora solo por tener alta utilidad por byte: primero debe conservar utilidad dentro de $\eps=0{,}03$ del m\'aximo observado. La dominancia de Pareto se reporta por separado. Las heur\'isticas de transmisi\'on se comparan mediante curvas completas, no con umbrales elegidos a mano.
+
+Los experimentos se ejecutaron en CPU con PyTorch. Se usaron CNN compactas: dos o tres bloques convolucionales, \emph{embedding} de 32 dimensiones en Fashion-MNIST y 64 dimensiones en CIFAR-10. Los receptores vectoriales son MLP peque\~nos.
+
+% ==========================================================
+\section{Fase 1: frontera utilidad--bytes en Fashion-MNIST}
+
